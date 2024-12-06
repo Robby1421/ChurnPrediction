@@ -4,7 +4,16 @@ Customer Churn Prediction - Complete Workflow
 This script includes data loading, cleaning, exploratory analysis, feature engineering, model building,
 evaluation, and visualization for a customer churn prediction problem.
 """
-
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import classification_report, roc_auc_score, confusion_matrix
 # Step 1: Data Loading and Setup
 # from google.colab import drive
 # import pandas as pd
