@@ -63,7 +63,7 @@ elif options == "Customer Churn Prediction":
     number_of_logins = st.number_input('Number of Logins', min_value=0, max_value=1000, value=50)
     watch_hours = st.number_input('Watch Hours', min_value=0, max_value=100, value=10)
 
-    gender = st.selectbox('Gender', ['Male', 'Female'])
+    #gender = st.selectbox('Gender', ['Male', 'Female'])
     country = st.selectbox('Country', ['USA', 'Canada', 'Germany', 'UK'])
     contract_type = st.selectbox('Contract Type', ['Month-to-Month', 'One-Year', 'Two-Year'])
     payment_method = st.selectbox('Payment Method', ['Electronic Check', 'Mailed Check', 'Bank Transfer', 'Credit Card'])
