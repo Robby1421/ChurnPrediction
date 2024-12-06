@@ -26,79 +26,63 @@ def predict_churn(input_data, model, scaler):
 # Load the model and scaler
 model, scaler = load_model()
 
-# Sidebar for Navigation
-st.sidebar.title("Navigation")
-page = st.sidebar.selectbox("Choose a page:", ["Data", "Predictions", "Manual Input & Prediction"])
+# App Title
+st.title("Customer Churn Prediction App")
+st.write("Upload customer data to predict churn or use the manual input below.")
 
-# Page 1: Data
-if page == "Data":
-    st.title("Customer Churn Data")
-    st.write("View or upload the customer churn dataset.")
+# File Upload Section
+uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
 
-    uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
-    if uploaded_file is not None:
-        data = pd.read_csv(uploaded_file)
-        st.write("Uploaded Data Preview:")
-        st.write(data.head())
-    else:
-        st.write("No file uploaded. Please upload a CSV file to view the data.")
+if uploaded_file is not None:
+    data = pd.read_csv(uploaded_file)
+    st.write("Uploaded Data Preview:")
+    st.write(data.head())
+    
+    if st.button("Predict Churn for Uploaded Data"):
+        predictions, probabilities = predict_churn(data, model, scaler)
+        data['Churn Prediction'] = predictions
+        data['Churn Probability'] = probabilities
+        st.write("Predictions:")
+        st.write(data)
+        st.download_button(
+            label="Download Predictions as CSV",
+            data=data.to_csv(index=False),
+            file_name="churn_predictions.csv",
+            mime="text/csv",
+        )
 
-# Page 2: Predictions
-elif page == "Predictions":
-    st.title("Batch Predictions")
-    st.write("Upload a dataset to predict churn for multiple customers.")
+# Manual Input Section
+st.header("Manual Input")
+st.write("Fill in the fields to predict churn for a single customer.")
 
-    uploaded_file = st.file_uploader("Upload a CSV file for predictions", type=["csv"])
-    if uploaded_file is not None:
-        data = pd.read_csv(uploaded_file)
-        st.write("Uploaded Data Preview:")
-        st.write(data.head())
-        
-        if st.button("Predict Churn for Uploaded Data"):
-            predictions, probabilities = predict_churn(data, model, scaler)
-            data['Churn Prediction'] = predictions
-            data['Churn Probability'] = probabilities
-            st.write("Predictions:")
-            st.write(data)
-            st.download_button(
-                label="Download Predictions as CSV",
-                data=data.to_csv(index=False),
-                file_name="churn_predictions.csv",
-                mime="text/csv",
-            )
-    else:
-        st.write("No file uploaded. Please upload a CSV file to make predictions.")
+# Example input form with dataset features
+st.write("Please enter the customer details below:")
+manual_input = {
+    'Gender': st.selectbox("Gender", ['Male', 'Female']),
+    'SeniorCitizen': st.selectbox("Senior Citizen", [0, 1]),
+    'Partner': st.selectbox("Partner", ['Yes', 'No']),
+    'Dependents': st.selectbox("Dependents", ['Yes', 'No']),
+    'tenure': st.number_input("Tenure (months)", min_value=0, value=12),
+    'PhoneService': st.selectbox("Phone Service", ['Yes', 'No']),
+    'MultipleLines': st.selectbox("Multiple Lines", ['Yes', 'No', 'No phone service']),
+    'InternetService': st.selectbox("Internet Service", ['DSL', 'Fiber optic', 'No']),
+    'OnlineSecurity': st.selectbox("Online Security", ['Yes', 'No', 'No internet service']),
+    'OnlineBackup': st.selectbox("Online Backup", ['Yes', 'No', 'No internet service']),
+    'DeviceProtection': st.selectbox("Device Protection", ['Yes', 'No', 'No internet service']),
+    'TechSupport': st.selectbox("Tech Support", ['Yes', 'No', 'No internet service']),
+    'StreamingTV': st.selectbox("Streaming TV", ['Yes', 'No', 'No internet service']),
+    'StreamingMovies': st.selectbox("Streaming Movies", ['Yes', 'No', 'No internet service']),
+    'Contract': st.selectbox("Contract", ['Month-to-month', 'One year', 'Two year']),
+    'PaperlessBilling': st.selectbox("Paperless Billing", ['Yes', 'No']),
+    'PaymentMethod': st.selectbox("Payment Method", ['Electronic check', 'Mailed check', 'Bank transfer (automatic)', 'Credit card (automatic)']),
+    'MonthlyCharges': st.number_input("Monthly Charges ($)", min_value=0.0, value=50.0),
+    'TotalCharges': st.number_input("Total Charges ($)", min_value=0.0, value=500.0),
+}
 
-# Page 3: Manual Input & Prediction
-elif page == "Manual Input & Prediction":
-    st.title("Manual Input & Prediction")
-    st.write("Fill in the customer details below to predict churn for a single customer.")
-
-    # Example input form with dataset features
-    manual_input = {
-        'Gender': st.selectbox("Gender", ['Male', 'Female']),
-        'SeniorCitizen': st.selectbox("Senior Citizen", [0, 1]),
-        'Partner': st.selectbox("Partner", ['Yes', 'No']),
-        'Dependents': st.selectbox("Dependents", ['Yes', 'No']),
-        'tenure': st.number_input("Tenure (months)", min_value=0, value=12),
-        'PhoneService': st.selectbox("Phone Service", ['Yes', 'No']),
-        'MultipleLines': st.selectbox("Multiple Lines", ['Yes', 'No', 'No phone service']),
-        'InternetService': st.selectbox("Internet Service", ['DSL', 'Fiber optic', 'No']),
-        'OnlineSecurity': st.selectbox("Online Security", ['Yes', 'No', 'No internet service']),
-        'OnlineBackup': st.selectbox("Online Backup", ['Yes', 'No', 'No internet service']),
-        'DeviceProtection': st.selectbox("Device Protection", ['Yes', 'No', 'No internet service']),
-        'TechSupport': st.selectbox("Tech Support", ['Yes', 'No', 'No internet service']),
-        'StreamingTV': st.selectbox("Streaming TV", ['Yes', 'No', 'No internet service']),
-        'StreamingMovies': st.selectbox("Streaming Movies", ['Yes', 'No', 'No internet service']),
-        'Contract': st.selectbox("Contract", ['Month-to-month', 'One year', 'Two year']),
-        'PaperlessBilling': st.selectbox("Paperless Billing", ['Yes', 'No']),
-        'PaymentMethod': st.selectbox("Payment Method", ['Electronic check', 'Mailed check', 'Bank transfer (automatic)', 'Credit card (automatic)']),
-        'MonthlyCharges': st.number_input("Monthly Charges ($)", min_value=0.0, value=50.0),
-        'TotalCharges': st.number_input("Total Charges ($)", min_value=0.0, value=500.0),
-    }
-
-    if st.button("Predict Churn for Manual Input"):
-        input_data = pd.DataFrame([manual_input])
-        prediction, probability = predict_churn(input_data, model, scaler)
-        st.write("Churn Prediction:", "Yes" if prediction[0] == 1 else "No")
-        st.write("Churn Probability:", f"{probability[0]:.2f}")
+# Convert manual input to dataframe
+if st.button("Predict Churn for Manual Input"):
+    input_data = pd.DataFrame([manual_input])
+    # Map categorical variables to numeric if required
+    prediction, probability = predict_churn(input_data, model, scaler)
+    st.write("Churn Prediction:", "Yes" if prediction[0] == 1 else "No")
+    st.write("Churn Probability:", f"{probability[0]:.2f}")
