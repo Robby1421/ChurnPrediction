@@ -84,7 +84,7 @@ elif options == "Customer Churn Prediction":
     }
 
     # URL to the raw CSV file on GitHub (replace with your file's raw URL)
-    github_url = "https://raw.githubusercontent.com/yourusername/yourrepo/main/yourfile.csv"
+    github_url = "https://github.com/Robby1421/ChurnPrediction/blob/main/customer_churn.csv"
 
     # Read the CSV file from GitHub
     try:
