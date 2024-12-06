@@ -1,98 +1,76 @@
 import streamlit as st
-import joblib
-import requests
 import pandas as pd
 import numpy as np
-from io import BytesIO
-from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.metrics import classification_report
 
-# GitHub repo URL for raw files (change the URL to your actual GitHub repo URL)
-GITHUB_RAW_URL = "https://raw.githubusercontent.com/Robby1421/ChurnPrediction/main/"
-
-# Load scaler and model from GitHub
-@st.cache_data
-def load_scaler_and_model():
-    # Raw URL for model and scaler files
-    scaler_url = GITHUB_RAW_URL + "random_forest_scaler.pkl"
-    model_url = GITHUB_RAW_URL + "model.pkl"
-    
-    # Fetch and load scaler and model using joblib
-    scaler = joblib.load(BytesIO(requests.get(scaler_url).content))
-    model = joblib.load(BytesIO(requests.get(model_url).content))
-    return scaler, model
-
-# Load model and scaler
-scaler, model = load_scaler_and_model()
-
-# Define the feature mappings for categorical variables
-categorical_map = {
-    "gender": {"Male": 0, "Female": 1},
-    "country": {"Country A": 0, "Country B": 1, "Country C": 2},
-    "contract_type": {"Month-to-Month": 0, "One Year": 1, "Two Year": 2},
-    "payment_method": {"Credit Card": 0, "PayPal": 1, "Bank Transfer": 2, "Electronic Check": 3},
-    "has_internet_service": {"Yes": 1, "No": 0},
-}
-
-# Function to preprocess and predict user input
-def preprocess_and_predict(user_input):
-    # Preprocess the categorical features using the mapping (handle unknown categories)
-    user_input['gender'] = categorical_map["gender"].get(user_input['gender'], 0)  # Default to 'Male' (0)
-    user_input['country'] = categorical_map["country"].get(user_input['country'], 0)  # Default to 'Country A' (0)
-    user_input['contract_type'] = categorical_map["contract_type"].get(user_input['contract_type'], 0)  # Default to 'Month-to-Month' (0)
-    user_input['payment_method'] = categorical_map["payment_method"].get(user_input['payment_method'], 0)  # Default to 'Credit Card' (0)
-    user_input['has_internet_service'] = categorical_map["has_internet_service"].get(user_input['has_internet_service'], 0)  # Default to 'No' (0)
-
-    # Convert input data into a DataFrame
-    user_input_df = pd.DataFrame([user_input])
-
-    # Scale the numerical features using the loaded scaler
-    user_input_scaled = scaler.transform(user_input_df)
-
-    # Predict with the trained model
-    prediction = model.predict(user_input_scaled)
-    return prediction
-
-# Streamlit UI to input user data
+# Set up the app title
 st.title("Customer Churn Prediction")
 
-# User input fields
-age = st.number_input("Age", min_value=18, max_value=100, value=30)
-tenure_months = st.number_input("Tenure (in months)", min_value=0, max_value=100, value=10)
-monthly_charges = st.number_input("Monthly Charges", min_value=0.0, value=50.0)
-total_charges = st.number_input("Total Charges", min_value=0.0, value=500.0)
-number_of_logins = st.number_input("Number of Logins", min_value=0, max_value=100, value=5)
-watch_hours = st.number_input("Watch Hours", min_value=0, max_value=100, value=20)
+# Section 1: Upload Data
+st.header("Upload Customer Data")
+uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+if uploaded_file is not None:
+    data = pd.read_csv(uploaded_file)
+    st.write("Dataset Preview:")
+    st.dataframe(data.head())
+else:
+    st.warning("Please upload a CSV file to proceed.")
+    st.stop()
 
-# Categorical input fields
-gender = st.selectbox("Gender", options=["Male", "Female"], index=0)
-country = st.selectbox("Country", options=["Country A", "Country B", "Country C"], index=0)
-contract_type = st.selectbox("Contract Type", options=["Month-to-Month", "One Year", "Two Year"], index=0)
-payment_method = st.selectbox("Payment Method", options=["Credit Card", "PayPal", "Bank Transfer", "Electronic Check"], index=0)
-has_internet_service = st.selectbox("Has Internet Service", options=["Yes", "No"], index=0)
+# Section 2: Data Cleaning and Preprocessing
+st.header("Data Preprocessing")
+if "total_charges" in data.columns:
+    # Handle missing values
+    missing_before = data["total_charges"].isna().sum()
+    data = data.dropna(subset=["total_charges"])
+    missing_after = data["total_charges"].isna().sum()
+    st.write(f"Missing values in `total_charges`: {missing_before} before, {missing_after} after.")
+else:
+    st.warning("`total_charges` column is missing. Ensure the dataset matches the use case.")
+    st.stop()
 
-# Prepare the input data as a dictionary
-user_input = {
-    "age": age,
-    "tenure_months": tenure_months,
-    "monthly_charges": monthly_charges,
-    "total_charges": total_charges,
-    "number_of_logins": number_of_logins,
-    "watch_hours": watch_hours,
-    "gender": gender,
-    "country": country,
-    "contract_type": contract_type,
-    "payment_method": payment_method,
-    "has_internet_service": has_internet_service
-}
+# Encoding categorical variables
+categorical_cols = data.select_dtypes(include=["object"]).columns
+for col in categorical_cols:
+    data[col] = LabelEncoder().fit_transform(data[col])
 
-# When user clicks on the predict button
-if st.button("Predict Churn"):
-    # Preprocess the input and make a prediction
-    prediction = preprocess_and_predict(user_input)
-    
-    # Show the result
-    if prediction[0] == 0:
-        st.write("The customer is likely to **not churn**.")
-    else:
-        st.write("The customer is likely to **churn**.")
+# Scale numerical features
+scaler = StandardScaler()
+numerical_cols = data.select_dtypes(include=["int64", "float64"]).columns
+data[numerical_cols] = scaler.fit_transform(data[numerical_cols])
+st.write("Data after encoding and scaling:")
+st.dataframe(data.head())
 
+# Section 3: Train-Test Split
+st.header("Train-Test Split")
+target = st.selectbox("Select Target Column", data.columns)
+features = data.drop(columns=[target])
+X_train, X_test, y_train, y_test = train_test_split(features, data[target], test_size=0.3, random_state=42)
+st.write(f"Training set size: {X_train.shape[0]}, Test set size: {X_test.shape[0]}")
+
+# Section 4: Model Training
+st.header("Model Training")
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train, y_train)
+
+# Section 5: Evaluation
+st.header("Model Evaluation")
+y_pred = model.predict(X_test)
+st.text("Classification Report:")
+st.text(classification_report(y_test, y_pred))
+
+# Section 6: Make Predictions
+st.header("Make Predictions")
+input_data = {}
+for col in features.columns:
+    input_data[col] = st.number_input(f"Enter {col}", value=0.0)
+input_df = pd.DataFrame([input_data])
+st.write("Input Preview:")
+st.dataframe(input_df)
+
+# Predict churn
+prediction = model.predict(input_df)
+st.write(f"Prediction: {'Churn' if prediction[0] else 'No Churn'}")
