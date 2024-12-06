@@ -1,82 +1,66 @@
 import streamlit as st
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, accuracy_score
-from sklearn.preprocessing import LabelEncoder
+import numpy as np
+import pickle
+
+# Load pre-trained model and scaler
+@st.cache_resource
+def load_model():
+    with open('random_forest_model.pkl', 'rb') as model_file:
+        model = pickle.load(model_file)
+    with open('scaler.pkl', 'rb') as scaler_file:
+        scaler = pickle.load(scaler_file)
+    return model, scaler
+
+# Function for predicting churn
+def predict_churn(input_data, model, scaler):
+    scaled_data = scaler.transform(input_data)
+    prediction = model.predict(scaled_data)
+    probability = model.predict_proba(scaled_data)[:, 1]
+    return prediction, probability
+
+# Load the model and scaler
+model, scaler = load_model()
 
 # App Title
-st.title("Customer Churn Prediction App")
+st.title("Churn Prediction App")
+st.write("Upload customer data to predict churn or use the manual input below.")
 
-# Sidebar: File Upload
-st.sidebar.header("Upload Data")
-uploaded_file = st.sidebar.file_uploader("Upload your CSV file for training", type=["csv"])
+# File Upload Section
+uploaded_file = st.file_uploader("Upload a CSV file", type=["csv"])
 
 if uploaded_file is not None:
-    # Load the uploaded data
     data = pd.read_csv(uploaded_file)
-    st.write("### Dataset Preview")
-    st.dataframe(data.head())
-
-    # Drop irrelevant columns (including 'customer_id' and 'gender')
-    if 'customer_id' in data.columns:
-        data = data.drop(['customer_id'], axis=1)
-        st.write("Dropped 'customer_id' column from the dataset.")
+    st.write("Uploaded Data Preview:")
+    st.write(data.head())
     
-    if 'gender' in data.columns:
-        data = data.drop(['gender'], axis=1)
-        st.write("Dropped 'gender' column from the dataset.")
+    if st.button("Predict Churn for Uploaded Data"):
+        predictions, probabilities = predict_churn(data, model, scaler)
+        data['Churn Prediction'] = predictions
+        data['Churn Probability'] = probabilities
+        st.write("Predictions:")
+        st.write(data)
+        st.download_button(
+            label="Download Predictions as CSV",
+            data=data.to_csv(index=False),
+            file_name="churn_predictions.csv",
+            mime="text/csv",
+        )
 
-    # Identify categorical columns and encode them
-    categorical_columns = data.select_dtypes(include=['object']).columns
-    for col in categorical_columns:
-        label_encoder = LabelEncoder()
-        data[col] = label_encoder.fit_transform(data[col])
+# Manual Input Section
+st.header("Manual Input")
+st.write("Fill in the fields to predict churn for a single customer.")
 
-    # Split data into features and target
-    X = data.drop(columns=['churn'], axis=1)  # Replace 'churn' with the actual target column name
-    y = data['churn']
+# Example input form (adjust according to dataset features)
+features = {
+    'Feature1': st.number_input("Feature1 Value", value=0.0),
+    'Feature2': st.number_input("Feature2 Value", value=0.0),
+    'Feature3': st.number_input("Feature3 Value", value=0.0),
+    # Add more features as per your dataset
+}
 
-    # Split into training and testing sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    # Train a Random Forest model
-    st.write("### Training Random Forest Model...")
-    model = RandomForestClassifier(random_state=42)
-    model.fit(X_train, y_train)
-
-    # Evaluate the model
-    y_pred = model.predict(X_test)
-    accuracy = accuracy_score(y_test, y_pred)
-    st.write(f"Model Accuracy: **{accuracy:.2f}**")
-    st.text("Classification Report:")
-    st.text(classification_report(y_test, y_pred))
-
-    # Save the model for future use
-    st.write("Model trained successfully. Ready for predictions.")
-
-    # Prediction Section
-    st.sidebar.header("Prediction Input")
-    if st.sidebar.checkbox("Enable Manual Prediction"):
-        # Manual Input (excluding 'gender' feature)
-        st.sidebar.subheader("Enter Customer Features:")
-        input_data = {}
-        for col in X.columns:
-            if col != 'gender':  # We removed 'gender' from the input data
-                dtype = X[col].dtype
-                if dtype == 'float64' or dtype == 'int64':
-                    input_data[col] = st.sidebar.number_input(f"Enter {col}", value=float(X[col].mean()))
-                else:
-                    input_data[col] = st.sidebar.text_input(f"Enter {col}", "")
-
-        # Predict
-        if st.sidebar.button("Predict"):
-            input_df = pd.DataFrame([input_data])
-            prediction = model.predict(input_df)[0]
-            prediction_text = "Churn" if prediction == 1 else "No Churn"
-            st.write(f"Prediction for the customer: **{prediction_text}**")
-else:
-    st.write("Please upload a dataset to get started.")
-
-st.write("---")
-st.write("Developed with ❤️ using Streamlit.")
+if st.button("Predict Churn for Manual Input"):
+    input_data = pd.DataFrame([features.values()], columns=features.keys())
+    prediction, probability = predict_churn(input_data, model, scaler)
+    st.write("Churn Prediction:", "Yes" if prediction[0] == 1 else "No")
+    st.write("Churn Probability:", f"{probability[0]:.2f}")
