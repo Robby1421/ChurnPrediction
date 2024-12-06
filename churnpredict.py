@@ -26,8 +26,8 @@ def preprocess_input(input_data, le, scaler):
     # Convert input data into a DataFrame
     data = pd.DataFrame([input_data])
 
-    # List of categorical columns (excludes 'gender')
-    categorical_cols = ['country', 'contract_type', 'payment_method', 'has_internet_service']
+    # List of categorical columns (excludes 'gender' and 'country')
+    categorical_cols = ['contract_type', 'payment_method', 'has_internet_service']
 
     # Encode categorical variables using LabelEncoder
     for col in categorical_cols:
@@ -56,7 +56,7 @@ elif options == "Customer Churn Prediction":
     contract type, payment method, and usage to make predictions.
     """)
 
-    # Customer input fields (removed 'gender')
+    # Customer input fields (removed 'gender' and 'country')
     age = st.number_input('Age', min_value=18, max_value=100, value=30)
     tenure_months = st.number_input('Tenure (months)', min_value=1, max_value=72, value=12)
     monthly_charges = st.number_input('Monthly Charges', min_value=20.0, max_value=200.0, value=50.0)
@@ -64,12 +64,11 @@ elif options == "Customer Churn Prediction":
     number_of_logins = st.number_input('Number of Logins', min_value=0, max_value=1000, value=50)
     watch_hours = st.number_input('Watch Hours', min_value=0, max_value=100, value=10)
 
-    country = st.selectbox('Country', ['USA', 'Canada', 'Germany', 'UK'])
     contract_type = st.selectbox('Contract Type', ['Month-to-Month', 'One-Year', 'Two-Year'])
     payment_method = st.selectbox('Payment Method', ['Electronic Check', 'Mailed Check', 'Bank Transfer', 'Credit Card'])
     has_internet_service = st.selectbox('Has Internet Service', ['Yes', 'No'])
 
-    # Create a dictionary with the input values (gender removed)
+    # Create a dictionary with the input values (gender and country removed)
     input_data = {
         'age': age,
         'tenure_months': tenure_months,
@@ -77,7 +76,6 @@ elif options == "Customer Churn Prediction":
         'total_charges': total_charges,
         'number_of_logins': number_of_logins,
         'watch_hours': watch_hours,
-        'country': country,
         'contract_type': contract_type,
         'payment_method': payment_method,
         'has_internet_service': has_internet_service
@@ -97,14 +95,16 @@ elif options == "Customer Churn Prediction":
     if 'customer_id' in df.columns:
         df = df.drop('customer_id', axis=1)
 
-    # Drop 'gender' column
+    # Drop 'gender' and 'country' columns
     if 'gender' in df.columns:
         df = df.drop('gender', axis=1)
+    if 'country' in df.columns:
+        df = df.drop('country', axis=1)
 
     st.write("Data Preview:", df.head())
 
     # Preprocess the data
-    categorical_cols = ['country', 'contract_type', 'payment_method', 'has_internet_service']
+    categorical_cols = ['contract_type', 'payment_method', 'has_internet_service']
     le = LabelEncoder()
 
     # Fit the LabelEncoder on categorical columns
@@ -158,14 +158,16 @@ elif options == "Model Training":
     if 'customer_id' in df.columns:
         df = df.drop('customer_id', axis=1)
 
-    # Drop 'gender' column
+    # Drop 'gender' and 'country' columns
     if 'gender' in df.columns:
         df = df.drop('gender', axis=1)
+    if 'country' in df.columns:
+        df = df.drop('country', axis=1)
 
     st.write("Data Preview:", df.head())
 
     # Preprocess the data and train the model
-    categorical_cols = ['country', 'contract_type', 'payment_method', 'has_internet_service']
+    categorical_cols = ['contract_type', 'payment_method', 'has_internet_service']
     le = LabelEncoder()
 
     # Fit the LabelEncoder on categorical columns
@@ -192,4 +194,12 @@ elif options == "Model Training":
     # Evaluate the model on the test set
     y_pred = model.predict(X_test)
 
-   
+    # Display classification report
+    st.write("Classification Report:")
+    st.text(classification_report(y_test, y_pred))
+
+    # Display confusion matrix
+    cm = confusion_matrix(y_test, y_pred)
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+    plt.title("Confusion Matrix")
+    st.pyplot()
