@@ -1,89 +1,98 @@
 import streamlit as st
-import pandas as pd
 import joblib
 import requests
+import pandas as pd
+import numpy as np
 from io import BytesIO
+from sklearn.preprocessing import StandardScaler
 
-# GitHub repo URL (replace with your actual GitHub repo URL)
-GITHUB_RAW_URL = "https://github.com/Robby1421/ChurnPrediction/tree/main/"
-
+# GitHub repo URL for raw files (change the URL to your actual GitHub repo URL)
+GITHUB_RAW_URL = "https://raw.githubusercontent.com/Robby1421/ChurnPrediction/main/"
 
 # Load scaler and model from GitHub
 @st.cache_data
 def load_scaler_and_model():
+    # Raw URL for model and scaler files
     scaler_url = GITHUB_RAW_URL + "random_forest_scaler.pkl"
     model_url = GITHUB_RAW_URL + "model.pkl"
     
+    # Fetch and load scaler and model using joblib
     scaler = joblib.load(BytesIO(requests.get(scaler_url).content))
     model = joblib.load(BytesIO(requests.get(model_url).content))
     return scaler, model
 
-# Load the scaler and model
+# Load model and scaler
 scaler, model = load_scaler_and_model()
 
-# App Title
-st.title("Customer Churn Prediction App")
+# Define the feature mappings for categorical variables
+categorical_map = {
+    "gender": {"Male": 0, "Female": 1},
+    "country": {"Country A": 0, "Country B": 1, "Country C": 2},
+    "contract_type": {"Month-to-Month": 0, "One Year": 1, "Two Year": 2},
+    "payment_method": {"Credit Card": 0, "PayPal": 1, "Bank Transfer": 2, "Electronic Check": 3},
+    "has_internet_service": {"Yes": 1, "No": 0},
+}
 
-# Sidebar for input features
-st.sidebar.header("Customer Input Features")
+# Function to preprocess and predict user input
+def preprocess_and_predict(user_input):
+    # Preprocess the categorical features using the mapping (handle unknown categories)
+    user_input['gender'] = categorical_map["gender"].get(user_input['gender'], 0)  # Default to 'Male' (0)
+    user_input['country'] = categorical_map["country"].get(user_input['country'], 0)  # Default to 'Country A' (0)
+    user_input['contract_type'] = categorical_map["contract_type"].get(user_input['contract_type'], 0)  # Default to 'Month-to-Month' (0)
+    user_input['payment_method'] = categorical_map["payment_method"].get(user_input['payment_method'], 0)  # Default to 'Credit Card' (0)
+    user_input['has_internet_service'] = categorical_map["has_internet_service"].get(user_input['has_internet_service'], 0)  # Default to 'No' (0)
 
-# Function to get user inputs
-def get_user_input():
-    age = st.sidebar.slider("Age", 18, 100, 35)
-    tenure_months = st.sidebar.slider("Tenure (months)", 0, 100, 12)
-    monthly_charges = st.sidebar.number_input("Monthly Charges", min_value=0.0, max_value=500.0, value=80.0)
-    total_charges = st.sidebar.number_input("Total Charges", min_value=0.0, max_value=20000.0, value=960.0)
-    number_of_logins = st.sidebar.slider("Number of Logins", 0, 100, 5)
-    watch_hours = st.sidebar.slider("Watch Hours", 0, 500, 50)
+    # Convert input data into a DataFrame
+    user_input_df = pd.DataFrame([user_input])
+
+    # Scale the numerical features using the loaded scaler
+    user_input_scaled = scaler.transform(user_input_df)
+
+    # Predict with the trained model
+    prediction = model.predict(user_input_scaled)
+    return prediction
+
+# Streamlit UI to input user data
+st.title("Customer Churn Prediction")
+
+# User input fields
+age = st.number_input("Age", min_value=18, max_value=100, value=30)
+tenure_months = st.number_input("Tenure (in months)", min_value=0, max_value=100, value=10)
+monthly_charges = st.number_input("Monthly Charges", min_value=0.0, value=50.0)
+total_charges = st.number_input("Total Charges", min_value=0.0, value=500.0)
+number_of_logins = st.number_input("Number of Logins", min_value=0, max_value=100, value=5)
+watch_hours = st.number_input("Watch Hours", min_value=0, max_value=100, value=20)
+
+# Categorical input fields
+gender = st.selectbox("Gender", options=["Male", "Female"], index=0)
+country = st.selectbox("Country", options=["Country A", "Country B", "Country C"], index=0)
+contract_type = st.selectbox("Contract Type", options=["Month-to-Month", "One Year", "Two Year"], index=0)
+payment_method = st.selectbox("Payment Method", options=["Credit Card", "PayPal", "Bank Transfer", "Electronic Check"], index=0)
+has_internet_service = st.selectbox("Has Internet Service", options=["Yes", "No"], index=0)
+
+# Prepare the input data as a dictionary
+user_input = {
+    "age": age,
+    "tenure_months": tenure_months,
+    "monthly_charges": monthly_charges,
+    "total_charges": total_charges,
+    "number_of_logins": number_of_logins,
+    "watch_hours": watch_hours,
+    "gender": gender,
+    "country": country,
+    "contract_type": contract_type,
+    "payment_method": payment_method,
+    "has_internet_service": has_internet_service
+}
+
+# When user clicks on the predict button
+if st.button("Predict Churn"):
+    # Preprocess the input and make a prediction
+    prediction = preprocess_and_predict(user_input)
     
-    gender = st.sidebar.selectbox("Gender", options=["Male", "Female"])
-    country = st.sidebar.selectbox("Country", options=["Country A", "Country B", "Country C"])
-    contract_type = st.sidebar.selectbox("Contract Type", options=["Month-to-Month", "One Year", "Two Year"])
-    payment_method = st.sidebar.selectbox("Payment Method", options=["Credit Card", "PayPal", "Bank Transfer", "Electronic Check"])
-    has_internet_service = st.sidebar.radio("Has Internet Service?", options=["Yes", "No"])
-    
-    # Encoding the categorical inputs to match model requirements
-    gender_encoded = 0 if gender == "Male" else 1
-    country_encoded = {"Country A": 0, "Country B": 1, "Country C": 2}[country]
-    contract_type_encoded = {"Month-to-Month": 0, "One Year": 1, "Two Year": 2}[contract_type]
-    payment_method_encoded = {"Credit Card": 0, "PayPal": 1, "Bank Transfer": 2, "Electronic Check": 3}[payment_method]
-    has_internet_service_encoded = 1 if has_internet_service == "Yes" else 0
-    
-    # Return as a dictionary
-    data = {
-        "age": age,
-        "tenure_months": tenure_months,
-        "monthly_charges": monthly_charges,
-        "total_charges": total_charges,
-        "number_of_logins": number_of_logins,
-        "watch_hours": watch_hours,
-        "gender": gender_encoded,
-        "country": country_encoded,
-        "contract_type": contract_type_encoded,
-        "payment_method": payment_method_encoded,
-        "has_internet_service": has_internet_service_encoded
-    }
-    return pd.DataFrame(data, index=[0])
+    # Show the result
+    if prediction[0] == 0:
+        st.write("The customer is likely to **not churn**.")
+    else:
+        st.write("The customer is likely to **churn**.")
 
-# Get user inputs
-user_input = get_user_input()
-
-# Display user inputs
-st.subheader("Customer Input Features")
-st.write(user_input)
-
-# Scale numerical features
-numerical_cols = ['age', 'tenure_months', 'monthly_charges', 'total_charges', 'number_of_logins', 'watch_hours']
-user_input[numerical_cols] = scaler.transform(user_input[numerical_cols])
-
-# Predict churn
-prediction = model.predict(user_input)
-prediction_proba = model.predict_proba(user_input)[:, 1]
-
-# Display predictions
-st.subheader("Prediction")
-st.write("Churn" if prediction[0] == 1 else "No Churn")
-
-# Display prediction probability
-st.subheader("Churn Probability")
-st.write(f"{prediction_proba[0]:.2%}")
