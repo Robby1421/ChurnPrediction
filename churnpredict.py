@@ -1,51 +1,77 @@
 import streamlit as st
-from pptx import Presentation
-import requests
-from io import BytesIO
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, accuracy_score
+from sklearn.preprocessing import LabelEncoder
 
-# Function to fetch the PowerPoint file from GitHub
-def fetch_pptx_from_github(url):
-    response = requests.get(url)
-    if response.status_code == 200:
-        return BytesIO(response.content)
-    else:
-        st.error("Failed to fetch the file from GitHub. Please check the URL.")
-        return None
+# App Title
+st.title("Customer Churn Prediction App")
 
-# Function to extract slides from a PowerPoint file
-def extract_slides(file):
-    presentation = Presentation(file)
-    slides = []
-    for slide in presentation.slides:
-        content = []
-        for shape in slide.shapes:
-            if shape.has_text_frame:
-                text = shape.text_frame.text
-                content.append(text)
-        slides.append("\n\n".join(content))
-    return slides
+# Sidebar: File Upload
+st.sidebar.header("Upload Data")
+uploaded_file = st.sidebar.file_uploader("Upload your CSV file for training", type=["csv"])
 
-# Streamlit app layout
-st.title("Churn Prediction Use Case - GitHub Integration")
+if uploaded_file is not None:
+    # Load the uploaded data
+    data = pd.read_csv(uploaded_file)
+    st.write("### Dataset Preview")
+    st.dataframe(data.head())
 
-# GitHub file URL input
-github_url = st.text_input("Enter the GitHub raw URL for the PowerPoint file:")
-if github_url:
-    pptx_file = fetch_pptx_from_github(github_url)
-    if pptx_file:
-        slides_content = extract_slides(pptx_file)
-        total_slides = len(slides_content)
+    # Drop irrelevant columns
+    if 'customer_id' in data.columns:
+        data = data.drop(['customer_id'], axis=1)
+        st.write("Dropped 'customer_id' column from the dataset.")
 
-        if total_slides > 0:
-            # Select the slide to display
-            selected_slide = st.slider("Select Slide", 1, total_slides, 1)
-            st.write(f"### Slide {selected_slide}:")
-            st.write(slides_content[selected_slide - 1])
-        else:
-            st.warning("No slides were found in the fetched file.")
+    # Identify categorical columns and encode them
+    categorical_columns = data.select_dtypes(include=['object']).columns
+    for col in categorical_columns:
+        label_encoder = LabelEncoder()
+        data[col] = label_encoder.fit_transform(data[col])
+
+    # Split data into features and target
+    X = data.drop(columns=['churn'], axis=1)  # Replace 'churn' with the actual target column name
+    y = data['churn']
+
+    # Split into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Train a Random Forest model
+    st.write("### Training Random Forest Model...")
+    model = RandomForestClassifier(random_state=42)
+    model.fit(X_train, y_train)
+
+    # Evaluate the model
+    y_pred = model.predict(X_test)
+    accuracy = accuracy_score(y_test, y_pred)
+    st.write(f"Model Accuracy: **{accuracy:.2f}**")
+    st.text("Classification Report:")
+    st.text(classification_report(y_test, y_pred))
+
+    # Save the model for future use
+    st.write("Model trained successfully. Ready for predictions.")
+
+    # Prediction Section
+    st.sidebar.header("Prediction Input")
+    if st.sidebar.checkbox("Enable Manual Prediction"):
+        # Manual Input
+        st.sidebar.subheader("Enter Customer Features:")
+        input_data = {}
+        for col in X.columns:
+            dtype = X[col].dtype
+            if dtype == 'float64' or dtype == 'int64':
+                input_data[col] = st.sidebar.number_input(f"Enter {col}", value=float(X[col].mean()))
+            else:
+                input_data[col] = st.sidebar.text_input(f"Enter {col}", "")
+
+        # Predict
+        if st.sidebar.button("Predict"):
+            input_df = pd.DataFrame([input_data])
+            prediction = model.predict(input_df)[0]
+            prediction_text = "Churn" if prediction == 1 else "No Churn"
+            st.write(f"Prediction for the customer: **{prediction_text}**")
 else:
-    st.info("Enter the GitHub raw URL to begin.")
+    st.write("Please upload a dataset to get started.")
 
-# Footer
-st.markdown("---")
-st.caption("Powered by Streamlit and python-pptx")
+st.write("---")
+st.write("Developed with ❤️ using Streamlit.")
