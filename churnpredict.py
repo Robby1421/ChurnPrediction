@@ -27,7 +27,7 @@ def preprocess_input(input_data, le, scaler):
     data = pd.DataFrame([input_data])
 
     # List of categorical columns
-    categorical_cols = ['gender', 'country', 'contract_type', 'payment_method', 'has_internet_service']
+    categorical_cols = ['country', 'contract_type', 'payment_method', 'has_internet_service']
 
     # Encode categorical variables using LabelEncoder
     for col in categorical_cols:
@@ -64,7 +64,7 @@ elif options == "Customer Churn Prediction":
     number_of_logins = st.number_input('Number of Logins', min_value=0, max_value=1000, value=50)
     watch_hours = st.number_input('Watch Hours', min_value=0, max_value=100, value=10)
 
-    gender = st.selectbox('Gender', ['Male', 'Female'])
+    #gender = st.selectbox('Gender', ['Male', 'Female'])
     country = st.selectbox('Country', ['USA', 'Canada', 'Germany', 'UK'])
     contract_type = st.selectbox('Contract Type', ['Month-to-Month', 'One-Year', 'Two-Year'])
     payment_method = st.selectbox('Payment Method', ['Electronic Check', 'Mailed Check', 'Bank Transfer', 'Credit Card'])
@@ -78,7 +78,7 @@ elif options == "Customer Churn Prediction":
         'total_charges': total_charges,
         'number_of_logins': number_of_logins,
         'watch_hours': watch_hours,
-        'gender': gender,
+        #'gender': gender,
         'country': country,
         'contract_type': contract_type,
         'payment_method': payment_method,
@@ -99,7 +99,7 @@ elif options == "Customer Churn Prediction":
         st.write("Data Preview:", df.head())
 
         # Preprocess the data
-        categorical_cols = ['gender', 'country', 'contract_type', 'payment_method', 'has_internet_service']
+        categorical_cols = ['country', 'contract_type', 'payment_method', 'has_internet_service']
         le = LabelEncoder()
 
         # Fit the LabelEncoder on categorical columns
@@ -151,7 +151,7 @@ elif options == "Model Training":
         st.write("Preview of the Data:", df.head())
 
         # Preprocess the data and train the model
-        categorical_cols = ['gender', 'country', 'contract_type', 'payment_method', 'has_internet_service']
+        categorical_cols = ['country', 'contract_type', 'payment_method', 'has_internet_service']
         le = LabelEncoder()
 
         # Fit the LabelEncoder on categorical columns
