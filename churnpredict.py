@@ -1,10 +1,24 @@
 import streamlit as st
-import joblib
 import pandas as pd
+import joblib
+import requests
+from io import BytesIO
+
+# GitHub repo URL (replace with your actual GitHub repo URL)
+GITHUB_RAW_URL = "https://raw.githubusercontent.com/<username>/<repo>/main/"
+
+# Load scaler and model from GitHub
+@st.cache_data
+def load_scaler_and_model():
+    scaler_url = GITHUB_RAW_URL + "scaler.pkl"
+    model_url = GITHUB_RAW_URL + "model.pkl"
+    
+    scaler = joblib.load(BytesIO(requests.get(scaler_url).content))
+    model = joblib.load(BytesIO(requests.get(model_url).content))
+    return scaler, model
 
 # Load the scaler and model
-scaler = joblib.load('scaler.pkl')
-model = joblib.load('random_forest_model.pkl')
+scaler, model = load_scaler_and_model()
 
 # App Title
 st.title("Customer Churn Prediction App")
