@@ -1,77 +1,178 @@
-import streamlit as st
 import pandas as pd
-from sklearn.model_selection import train_test_split
+import numpy as np
+import streamlit as st
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, accuracy_score
-from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+import seaborn as sns
+import matplotlib.pyplot as plt
+from streamlit_option_menu import option_menu
 
-# App Title
-st.title("Customer Churn Prediction App")
+# Set up the page configuration
+st.set_page_config(page_title="Customer Churn Prediction", layout="wide")
 
-# Sidebar: File Upload
-st.sidebar.header("Upload Data")
-uploaded_file = st.sidebar.file_uploader("Upload your CSV file for training", type=["csv"])
+# Sidebar options
+with st.sidebar:
+    st.header("Settings")
+    options = option_menu(
+        "Churn Prediction App",
+        ["Home", "Customer Churn Prediction", "Model Training", "Model Evaluation"],
+        default_index=0
+    )
 
-if uploaded_file is not None:
-    # Load the uploaded data
-    data = pd.read_csv(uploaded_file)
-    st.write("### Dataset Preview")
-    st.dataframe(data.head())
+# Function to preprocess the input data
+def preprocess_input(input_data, le, scaler):
+    # Convert input data into a DataFrame
+    data = pd.DataFrame([input_data])
 
-    # Drop irrelevant columns
-    if 'customer_id' in data.columns:
-        data = data.drop(['customer_id'], axis=1)
-        st.write("Dropped 'customer_id' column from the dataset.")
+    # List of categorical columns
+    categorical_cols = ['gender', 'country', 'contract_type', 'payment_method', 'has_internet_service']
 
-    # Identify categorical columns and encode them
-    categorical_columns = data.select_dtypes(include=['object']).columns
-    for col in categorical_columns:
-        label_encoder = LabelEncoder()
-        data[col] = label_encoder.fit_transform(data[col])
+    # Encode categorical variables using LabelEncoder
+    for col in categorical_cols:
+        data[col] = le.transform(data[col])
 
-    # Split data into features and target
-    X = data.drop(columns=['churn'], axis=1)  # Replace 'churn' with the actual target column name
-    y = data['churn']
+    # Scale numerical features using StandardScaler
+    numerical_cols = ['age', 'tenure_months', 'monthly_charges', 'total_charges', 'number_of_logins', 'watch_hours']
+    data[numerical_cols] = scaler.transform(data[numerical_cols])
 
-    # Split into training and testing sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    return data
 
-    # Train a Random Forest model
-    st.write("### Training Random Forest Model...")
-    model = RandomForestClassifier(random_state=42)
-    model.fit(X_train, y_train)
+# Page: Home
+if options == "Home":
+    st.title("Welcome to Customer Churn Prediction!")
+    st.write("""
+    This app predicts whether a customer is likely to churn based on their demographic and service usage information. 
+    You can upload customer data, train a model, and make predictions.
+    """)
 
-    # Evaluate the model
-    y_pred = model.predict(X_test)
-    accuracy = accuracy_score(y_test, y_pred)
-    st.write(f"Model Accuracy: **{accuracy:.2f}**")
-    st.text("Classification Report:")
-    st.text(classification_report(y_test, y_pred))
+# Page: Customer Churn Prediction
+elif options == "Customer Churn Prediction":
+    st.title("Customer Churn Prediction")
+    st.write("""
+    Enter customer details to predict the likelihood of them churning. The model uses customer data such as age, tenure, 
+    contract type, payment method, and usage to make predictions.
+    """)
 
-    # Save the model for future use
-    st.write("Model trained successfully. Ready for predictions.")
+    # Customer input fields
+    age = st.number_input('Age', min_value=18, max_value=100, value=30)
+    tenure_months = st.number_input('Tenure (months)', min_value=1, max_value=72, value=12)
+    monthly_charges = st.number_input('Monthly Charges', min_value=20.0, max_value=200.0, value=50.0)
+    total_charges = st.number_input('Total Charges', min_value=50.0, max_value=10000.0, value=500.0)
+    number_of_logins = st.number_input('Number of Logins', min_value=0, max_value=1000, value=50)
+    watch_hours = st.number_input('Watch Hours', min_value=0, max_value=100, value=10)
 
-    # Prediction Section
-    st.sidebar.header("Prediction Input")
-    if st.sidebar.checkbox("Enable Manual Prediction"):
-        # Manual Input
-        st.sidebar.subheader("Enter Customer Features:")
-        input_data = {}
-        for col in X.columns:
-            dtype = X[col].dtype
-            if dtype == 'float64' or dtype == 'int64':
-                input_data[col] = st.sidebar.number_input(f"Enter {col}", value=float(X[col].mean()))
-            else:
-                input_data[col] = st.sidebar.text_input(f"Enter {col}", "")
+    gender = st.selectbox('Gender', ['Male', 'Female'])
+    country = st.selectbox('Country', ['USA', 'Canada', 'Germany', 'UK'])
+    contract_type = st.selectbox('Contract Type', ['Month-to-Month', 'One-Year', 'Two-Year'])
+    payment_method = st.selectbox('Payment Method', ['Electronic Check', 'Mailed Check', 'Bank Transfer', 'Credit Card'])
+    has_internet_service = st.selectbox('Has Internet Service', ['Yes', 'No'])
 
-        # Predict
-        if st.sidebar.button("Predict"):
-            input_df = pd.DataFrame([input_data])
-            prediction = model.predict(input_df)[0]
-            prediction_text = "Churn" if prediction == 1 else "No Churn"
-            st.write(f"Prediction for the customer: **{prediction_text}**")
-else:
-    st.write("Please upload a dataset to get started.")
+    # Create a dictionary with the input values
+    input_data = {
+        'age': age,
+        'tenure_months': tenure_months,
+        'monthly_charges': monthly_charges,
+        'total_charges': total_charges,
+        'number_of_logins': number_of_logins,
+        'watch_hours': watch_hours,
+        'gender': gender,
+        'country': country,
+        'contract_type': contract_type,
+        'payment_method': payment_method,
+        'has_internet_service': has_internet_service
+    }
 
-st.write("---")
-st.write("Developed with ❤️ using Streamlit.")
+    # Upload the training CSV for model training (required only once)
+    uploaded_file = st.file_uploader("Upload your customer data CSV file", type="csv")
+
+    if uploaded_file:
+        # Load the data
+        df = pd.read_csv(uploaded_file)
+        st.write("Data Preview:", df.head())
+
+        # Preprocess the data
+        categorical_cols = ['gender', 'country', 'contract_type', 'payment_method', 'has_internet_service']
+        le = LabelEncoder()
+
+        # Fit the LabelEncoder on categorical columns
+        for col in categorical_cols:
+            df[col] = le.fit_transform(df[col])
+
+        # Scale numerical features
+        numerical_cols = ['age', 'tenure_months', 'monthly_charges', 'total_charges', 'number_of_logins', 'watch_hours']
+        scaler = StandardScaler()
+        df[numerical_cols] = scaler.fit_transform(df[numerical_cols])
+
+        # Train the model
+        X = df.drop('churn', axis=1)
+        y = df['churn']
+
+        # Split the data for training
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        model = RandomForestClassifier()
+        model.fit(X_train, y_train)
+
+        # Make predictions on the input data
+        processed_input = preprocess_input(input_data, le, scaler)
+        prediction = model.predict(processed_input)
+        prediction_proba = model.predict_proba(processed_input)[:, 1]  # Get probability for class 1 (churn)
+
+        if prediction == 1:
+            st.write(f"The customer is predicted to churn with a probability of {prediction_proba[0]:.2f}.")
+        else:
+            st.write(f"The customer is predicted to stay with a probability of {1 - prediction_proba[0]:.2f}.")
+
+# Page: Model Training
+elif options == "Model Training":
+    st.title("Model Training")
+    st.write("""
+    Here you can upload your customer data and train the churn prediction model. This page allows you to train the model
+    dynamically using a dataset you upload.
+    """)
+
+    uploaded_file = st.file_uploader("Upload your customer data CSV file", type="csv")
+    
+    if uploaded_file:
+        df = pd.read_csv(uploaded_file)
+        st.write("Preview of the Data:", df.head())
+
+        # Preprocess the data and train the model
+        categorical_cols = ['gender', 'country', 'contract_type', 'payment_method', 'has_internet_service']
+        le = LabelEncoder()
+
+        # Fit the LabelEncoder on categorical columns
+        for col in categorical_cols:
+            df[col] = le.fit_transform(df[col])
+
+        # Scale numerical features
+        numerical_cols = ['age', 'tenure_months', 'monthly_charges', 'total_charges', 'number_of_logins', 'watch_hours']
+        scaler = StandardScaler()
+        df[numerical_cols] = scaler.fit_transform(df[numerical_cols])
+
+        # Train the Random Forest model
+        X = df.drop('churn', axis=1)  # Assuming 'churn' is the target column
+        y = df['churn']
+
+        # Split the data for training
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+        model = RandomForestClassifier()
+        model.fit(X_train, y_train)
+
+        st.write("Model trained successfully!")
+
+        # Evaluate the model on the test set
+        y_pred = model.predict(X_test)
+
+        # Display classification report
+        st.write("Classification Report:")
+        st.text(classification_report(y_test, y_pred))
+
+        # Display confusion matrix
+        cm = confusion_matrix(y_test, y_pred)
+        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+        plt.title("Confusion Matrix")
+        st.pyplot()
