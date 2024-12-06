@@ -83,51 +83,54 @@ elif options == "Customer Churn Prediction":
         'has_internet_service': has_internet_service
     }
 
-    # Upload the training CSV for model training (required only once)
-    uploaded_file = st.file_uploader("Upload your customer data CSV file", type="csv")
+    # URL to the raw CSV file on GitHub (replace with your file's raw URL)
+    github_url = "https://raw.githubusercontent.com/yourusername/yourrepo/main/yourfile.csv"
 
-    if uploaded_file:
-        # Load the data
-        df = pd.read_csv(uploaded_file)
+    # Read the CSV file from GitHub
+    df = pd.read_csv(github_url)
 
-        # Drop 'customer_id' column if it exists
-        if 'customer_id' in df.columns:
-            df = df.drop('customer_id', axis=1)
+    # Drop 'customer_id' column if it exists
+    if 'customer_id' in df.columns:
+        df = df.drop('customer_id', axis=1)
 
-        st.write("Data Preview:", df.head())
+    # Drop 'gender' column
+    if 'gender' in df.columns:
+        df = df.drop('gender', axis=1)
 
-        # Preprocess the data
-        categorical_cols = ['country', 'contract_type', 'payment_method', 'has_internet_service']
-        le = LabelEncoder()
+    st.write("Data Preview:", df.head())
 
-        # Fit the LabelEncoder on categorical columns
-        for col in categorical_cols:
-            df[col] = le.fit_transform(df[col])
+    # Preprocess the data
+    categorical_cols = ['country', 'contract_type', 'payment_method', 'has_internet_service']
+    le = LabelEncoder()
 
-        # Scale numerical features
-        numerical_cols = ['age', 'tenure_months', 'monthly_charges', 'total_charges', 'number_of_logins', 'watch_hours']
-        scaler = StandardScaler()
-        df[numerical_cols] = scaler.fit_transform(df[numerical_cols])
+    # Fit the LabelEncoder on categorical columns
+    for col in categorical_cols:
+        df[col] = le.fit_transform(df[col])
 
-        # Train the model
-        X = df.drop('churn', axis=1)
-        y = df['churn']
+    # Scale numerical features
+    numerical_cols = ['age', 'tenure_months', 'monthly_charges', 'total_charges', 'number_of_logins', 'watch_hours']
+    scaler = StandardScaler()
+    df[numerical_cols] = scaler.fit_transform(df[numerical_cols])
 
-        # Split the data for training
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    # Train the model
+    X = df.drop('churn', axis=1)
+    y = df['churn']
 
-        model = RandomForestClassifier()
-        model.fit(X_train, y_train)
+    # Split the data for training
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-        # Make predictions on the input data
-        processed_input = preprocess_input(input_data, le, scaler)
-        prediction = model.predict(processed_input)
-        prediction_proba = model.predict_proba(processed_input)[:, 1]  # Get probability for class 1 (churn)
+    model = RandomForestClassifier()
+    model.fit(X_train, y_train)
 
-        if prediction == 1:
-            st.write(f"The customer is predicted to churn with a probability of {prediction_proba[0]:.2f}.")
-        else:
-            st.write(f"The customer is predicted to stay with a probability of {1 - prediction_proba[0]:.2f}.")
+    # Make predictions on the input data
+    processed_input = preprocess_input(input_data, le, scaler)
+    prediction = model.predict(processed_input)
+    prediction_proba = model.predict_proba(processed_input)[:, 1]  # Get probability for class 1 (churn)
+
+    if prediction == 1:
+        st.write(f"The customer is predicted to churn with a probability of {prediction_proba[0]:.2f}.")
+    else:
+        st.write(f"The customer is predicted to stay with a probability of {1 - prediction_proba[0]:.2f}.")
 
 # Page: Model Training
 elif options == "Model Training":
@@ -137,51 +140,56 @@ elif options == "Model Training":
     dynamically using a dataset you upload.
     """)
 
-    uploaded_file = st.file_uploader("Upload your customer data CSV file", type="csv")
-    
-    if uploaded_file:
-        df = pd.read_csv(uploaded_file)
+    # URL to the raw CSV file on GitHub (replace with your file's raw URL)
+    github_url = "https://raw.githubusercontent.com/yourusername/yourrepo/main/yourfile.csv"
 
-        # Drop 'customer_id' column if it exists
-        if 'customer_id' in df.columns:
-            df = df.drop('customer_id', axis=1)
+    # Read the CSV file from GitHub
+    df = pd.read_csv(github_url)
 
-        st.write("Preview of the Data:", df.head())
+    # Drop 'customer_id' column if it exists
+    if 'customer_id' in df.columns:
+        df = df.drop('customer_id', axis=1)
 
-        # Preprocess the data and train the model
-        categorical_cols = ['country', 'contract_type', 'payment_method', 'has_internet_service']
-        le = LabelEncoder()
+    # Drop 'gender' column
+    if 'gender' in df.columns:
+        df = df.drop('gender', axis=1)
 
-        # Fit the LabelEncoder on categorical columns
-        for col in categorical_cols:
-            df[col] = le.fit_transform(df[col])
+    st.write("Data Preview:", df.head())
 
-        # Scale numerical features
-        numerical_cols = ['age', 'tenure_months', 'monthly_charges', 'total_charges', 'number_of_logins', 'watch_hours']
-        scaler = StandardScaler()
-        df[numerical_cols] = scaler.fit_transform(df[numerical_cols])
+    # Preprocess the data and train the model
+    categorical_cols = ['country', 'contract_type', 'payment_method', 'has_internet_service']
+    le = LabelEncoder()
 
-        # Train the Random Forest model
-        X = df.drop('churn', axis=1)  # Assuming 'churn' is the target column
-        y = df['churn']
+    # Fit the LabelEncoder on categorical columns
+    for col in categorical_cols:
+        df[col] = le.fit_transform(df[col])
 
-        # Split the data for training
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    # Scale numerical features
+    numerical_cols = ['age', 'tenure_months', 'monthly_charges', 'total_charges', 'number_of_logins', 'watch_hours']
+    scaler = StandardScaler()
+    df[numerical_cols] = scaler.fit_transform(df[numerical_cols])
 
-        model = RandomForestClassifier()
-        model.fit(X_train, y_train)
+    # Train the Random Forest model
+    X = df.drop('churn', axis=1)  # Assuming 'churn' is the target column
+    y = df['churn']
 
-        st.write("Model trained successfully!")
+    # Split the data for training
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-        # Evaluate the model on the test set
-        y_pred = model.predict(X_test)
+    model = RandomForestClassifier()
+    model.fit(X_train, y_train)
 
-        # Display classification report
-        st.write("Classification Report:")
-        st.text(classification_report(y_test, y_pred))
+    st.write("Model trained successfully!")
 
-        # Display confusion matrix
-        cm = confusion_matrix(y_test, y_pred)
-        sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
-        plt.title("Confusion Matrix")
-        st.pyplot()
+    # Evaluate the model on the test set
+    y_pred = model.predict(X_test)
+
+    # Display classification report
+    st.write("Classification Report:")
+    st.text(classification_report(y_test, y_pred))
+
+    # Display confusion matrix
+    cm = confusion_matrix(y_test, y_pred)
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+    plt.title("Confusion Matrix")
+    st.pyplot()
