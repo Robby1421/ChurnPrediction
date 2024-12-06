@@ -23,7 +23,7 @@ from sklearn.metrics import classification_report, roc_auc_score, confusion_matr
 # drive.mount('/content/drive')
 
 # Load the data from the CSV file
-file_path = 'https://github.com/Robby1421/ChurnPrediction/blob/main/customer_churn.csv'
+file_path = "https://github.com/Robby1421/ChurnPrediction/blob/main/customer_churn.csv"
 data = pd.read_csv(file_path)
 
 # Show the first few rows of the dataset
