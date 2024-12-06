@@ -5,12 +5,12 @@ import requests
 from io import BytesIO
 
 # GitHub repo URL (replace with your actual GitHub repo URL)
-GITHUB_RAW_URL = "https://raw.githubusercontent.com/<username>/<repo>/main/"
+GITHUB_RAW_URL = "https://github.com/Robby1421/ChurnPrediction/main"
 
 # Load scaler and model from GitHub
 @st.cache_data
 def load_scaler_and_model():
-    scaler_url = GITHUB_RAW_URL + "scaler.pkl"
+    scaler_url = GITHUB_RAW_URL + "random_forest_scaler.pkl"
     model_url = GITHUB_RAW_URL + "model.pkl"
     
     scaler = joblib.load(BytesIO(requests.get(scaler_url).content))
