@@ -1,118 +1,203 @@
-import streamlit as st
+# -*- coding: utf-8 -*-
+"""
+Customer Churn Prediction - Complete Workflow
+This script includes data loading, cleaning, exploratory analysis, feature engineering, model building,
+evaluation, and visualization for a customer churn prediction problem.
+"""
+
+# Step 1: Data Loading and Setup
+from google.colab import drive
 import pandas as pd
 import numpy as np
-import pickle
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, roc_auc_score, confusion_matrix
 
-# Load the data from GitHub
-url = 'https://raw.githubusercontent.com/Robby1421/ChurnPrediction/main/customer_churn.csv'
-data = pd.read_csv(url)
+# Mount Google Drive
+drive.mount('/content/drive')
 
-# Step 1: Data Cleaning and Exploration
-st.title("Customer Churn Prediction App")
-st.write("Data from GitHub: customer_churn.csv")
+# Load the data from the CSV file
+file_path = '/content/drive/MyDrive/proactis/customer_churn.csv'
+data = pd.read_csv(file_path)
 
-# Show dataset preview
-st.write("Dataset Preview:")
-st.write(data.head())
+# Show the first few rows of the dataset
+print(data.head())
 
-# Check for missing values
-st.write("Missing Values Check:")
-st.write(data.isnull().sum())
+# Step 2: Data Cleaning
+# Check for missing values in the dataset
+print("\nMissing values in each column:")
+print(data.isnull().sum())
 
-# Handle missing values in `total_charges` by dropping rows with missing values
+# Handle missing values by dropping rows with missing 'total_charges' values
 data = data.dropna(subset=['total_charges'])
 
-# Step 2: Feature Engineering and Preprocessing
-# Label encode categorical features
-categorical_cols = ['gender', 'country', 'contract_type', 'payment_method', 'has_internet_service', 'churn']
+# Summary statistics and data types
+print("\nSummary statistics:")
+print(data.describe(include='all'))
+
+# Check data info
+print("\nData Info:")
+print(data.info())
+
+# Step 3: Visualizing Numerical Features
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Define numerical columns to explore
+numerical_cols = ['age', 'tenure_months', 'monthly_charges', 'total_charges', 'number_of_logins', 'watch_hours']
+
+# Create histograms for each numerical feature
+plt.figure(figsize=(15, 10))
+for i, col in enumerate(numerical_cols, 1):
+    plt.subplot(2, 3, i)  # Create a 2x3 grid of subplots
+    sns.histplot(data[col], kde=True, color="blue", bins=30)
+    plt.title(f"Distribution of {col}")
+    plt.xlabel(col)
+    plt.ylabel("Frequency")
+plt.tight_layout()
+plt.show()
+
+# Step 4: Visualizing Categorical Features
+# Define categorical columns to explore
+categorical_cols = ['gender', 'country', 'contract_type', 'payment_method', 'has_internet_service']
+
+# Visualize categorical features with respect to churn
+plt.figure(figsize=(15, 10))
+for i, col in enumerate(categorical_cols, 1):
+    plt.subplot(2, 3, i)  # Create a 2x3 grid of subplots
+    sns.countplot(data=data, x=col, hue="churn", palette="viridis")
+    plt.title(f"{col} vs Churn")
+    plt.xlabel(col)
+    plt.ylabel("Count")
+    plt.legend(title="Churn", loc="upper right")
+plt.tight_layout()
+plt.show()
+
+# Step 5: Correlation Heatmap
+# Plot correlation heatmap for numerical features
+sns.heatmap(data[numerical_cols].corr(), annot=True, cmap="coolwarm")
+plt.title("Correlation Heatmap")
+plt.show()
+
+# Step 6: Feature Engineering
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+
+# Encode categorical variables
 label_encoders = {}
-for col in categorical_cols:
+for col in categorical_cols + ['churn']:
     le = LabelEncoder()
     data[col] = le.fit_transform(data[col])
     label_encoders[col] = le
 
-# Standardize numerical features
-numerical_cols = ['age', 'tenure_months', 'monthly_charges', 'total_charges', 'number_of_logins', 'watch_hours']
+# Scale numerical features
 scaler = StandardScaler()
 data[numerical_cols] = scaler.fit_transform(data[numerical_cols])
 
-# Split data into features (X) and target (y)
+# Split features and target variable
 X = data.drop(columns=['customer_id', 'churn'])
 y = data['churn']
 
-# Step 3: Model Training
-# Train a Random Forest model
+# Step 7: Train-Test Split
+from sklearn.model_selection import train_test_split
+
+# Split the data into training and testing sets (80% train, 20% test)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+
+# Display the shape of the training and testing sets
+print(f"Training set shape: {X_train.shape}")
+print(f"Testing set shape: {X_test.shape}")
+
+# Step 8: Model Building
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+
+# Logistic Regression
+lr_model = LogisticRegression(random_state=42)
+lr_model.fit(X_train, y_train)
+
+# Decision Tree
+dt_model = DecisionTreeClassifier(random_state=42)
+dt_model.fit(X_train, y_train)
+
+# Random Forest
 rf_model = RandomForestClassifier(random_state=42)
-rf_model.fit(X, y)
+rf_model.fit(X_train, y_train)
 
-# Step 4: Predictions and Evaluation
-# Predicting churn for all data
-y_pred = rf_model.predict(X)
-y_prob = rf_model.predict_proba(X)[:, 1]
+# Models are now trained
+print("Models trained successfully.")
 
-# Evaluate the model
-st.write("Model Evaluation:")
-roc_auc = roc_auc_score(y, y_prob)
-st.write(f"ROC-AUC Score: {roc_auc:.2f}")
+# Step 9: Model Evaluation
+from sklearn.metrics import classification_report, roc_auc_score, confusion_matrix
 
-# Display classification report and confusion matrix
-st.write("Classification Report:")
-st.text(classification_report(y, y_pred))
+def evaluate_model(model, predictions, X_test, y_test):
+    print(f"Model: {model.__class__.__name__}")
 
-st.write("Confusion Matrix:")
-cm = confusion_matrix(y, y_pred)
-st.write(cm)
+    # Classification Report
+    print("Classification Report:")
+    print(classification_report(y_test, predictions))
 
-# Page 2: Prediction Input (Single User Input)
-st.title("Manual Churn Prediction")
+    # ROC-AUC Score
+    roc_auc = roc_auc_score(y_test, model.predict_proba(X_test)[:, 1])
+    print("ROC-AUC Score:", roc_auc)
 
-# User input for prediction (only use relevant features)
-age = st.number_input("Age", min_value=18, max_value=100, value=30)
-tenure_months = st.number_input("Tenure in months", min_value=1, max_value=72, value=12)
-monthly_charges = st.number_input("Monthly Charges ($)", min_value=0.0, value=50.0)
-total_charges = st.number_input("Total Charges ($)", min_value=0.0, value=500.0)
-number_of_logins = st.number_input("Number of Logins", min_value=0, value=10)
-watch_hours = st.number_input("Watch Hours", min_value=0, value=20)
+    # Confusion Matrix
+    cm = confusion_matrix(y_test, predictions)
+    print("Confusion Matrix:")
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=["No Churn", "Churn"], yticklabels=["No Churn", "Churn"])
+    plt.title(f"{model.__class__.__name__} - Confusion Matrix")
+    plt.show()
 
-gender = st.selectbox("Gender", ['Male', 'Female'])
-country = st.selectbox("Country", ['USA', 'Canada', 'UK'])
-contract_type = st.selectbox("Contract Type", ['Month-to-month', 'One year', 'Two year'])
-payment_method = st.selectbox("Payment Method", ['Electronic check', 'Mailed check', 'Bank transfer (automatic)', 'Credit card (automatic)'])
-has_internet_service = st.selectbox("Has Internet Service", ['Yes', 'No'])
+# Evaluate each model
+evaluate_model(lr_model, lr_model.predict(X_test), X_test, y_test)
+evaluate_model(dt_model, dt_model.predict(X_test), X_test, y_test)
+evaluate_model(rf_model, rf_model.predict(X_test), X_test, y_test)
 
-# Encode user input and scale
-user_input = {
-    'age': age,
-    'tenure_months': tenure_months,
-    'monthly_charges': monthly_charges,
-    'total_charges': total_charges,
-    'number_of_logins': number_of_logins,
-    'watch_hours': watch_hours,
-    'gender': gender,
-    'country': country,
-    'contract_type': contract_type,
-    'payment_method': payment_method,
-    'has_internet_service': has_internet_service
-}
+# Step 10: Model Comparison
+import numpy as np
 
-# Convert to DataFrame for prediction
-input_data = pd.DataFrame([user_input])
+# Calculate accuracy and ROC-AUC for each model
+models = ['Logistic Regression', 'Decision Tree', 'Random Forest']
+accuracy = [
+    lr_model.score(X_test, y_test),
+    dt_model.score(X_test, y_test),
+    rf_model.score(X_test, y_test)
+]
+roc_auc = [
+    roc_auc_score(y_test, lr_model.predict_proba(X_test)[:, 1]),
+    roc_auc_score(y_test, dt_model.predict_proba(X_test)[:, 1]),
+    roc_auc_score(y_test, rf_model.predict_proba(X_test)[:, 1])
+]
 
-# Label encoding and scaling for the input data
-for col in ['gender', 'country', 'contract_type', 'payment_method', 'has_internet_service']:
-    input_data[col] = label_encoders[col].transform(input_data[col])
+# Create a comparison bar chart
+x = np.arange(len(models))  # positions of bars
+fig, ax = plt.subplots(figsize=(10, 6))
 
-input_data[numerical_cols] = scaler.transform(input_data[numerical_cols])
+# Plot accuracy and ROC-AUC
+bar_width = 0.35
+ax.bar(x - bar_width/2, accuracy, bar_width, label='Accuracy', color='skyblue')
+ax.bar(x + bar_width/2, roc_auc, bar_width, label='ROC-AUC', color='orange')
 
-# Predict using the trained model
-if st.button("Predict Churn"):
-    prediction = rf_model.predict(input_data)
-    prediction_prob = rf_model.predict_proba(input_data)[:, 1]
-    
-    churn = "Yes" if prediction[0] == 1 else "No"
-    st.write(f"Churn Prediction: {churn}")
-    st.write(f"Churn Probability: {prediction_prob[0]:.2f}")
+# Adding labels and title
+ax.set_xlabel('Models')
+ax.set_ylabel('Scores')
+ax.set_title('Model Comparison for Customer Churn Prediction')
+ax.set_xticks(x)
+ax.set_xticklabels(models)
+ax.legend()
+
+# Highlight the winning model (Random Forest)
+winning_model_idx = np.argmax(roc_auc)
+ax.bar(x[winning_model_idx] + bar_width/2, roc_auc[winning_model_idx], bar_width, color='green')  # Change color for the winner
+
+plt.tight_layout()
+plt.show()
+
+# Step 11: Feature Importance (Random Forest)
+# Extract feature importance for the Random Forest model
+feature_importances = pd.DataFrame({
+    'Feature': X.columns,
+    'Importance': rf_model.feature_importances_
+}).sort_values(by='Importance', ascending=False)
+
+# Plot feature importance
+sns.barplot(data=feature_importances, x='Importance', y='Feature')
+plt.title("Feature Importance - Random Forest")
+plt.show()
