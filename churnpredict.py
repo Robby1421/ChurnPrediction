@@ -26,7 +26,7 @@ def preprocess_input(input_data, le, scaler):
     # Convert input data into a DataFrame
     data = pd.DataFrame([input_data])
 
-    # List of categorical columns
+    # List of categorical columns (excludes 'gender')
     categorical_cols = ['country', 'contract_type', 'payment_method', 'has_internet_service']
 
     # Encode categorical variables using LabelEncoder
@@ -56,7 +56,7 @@ elif options == "Customer Churn Prediction":
     contract type, payment method, and usage to make predictions.
     """)
 
-    # Customer input fields
+    # Customer input fields (removed 'gender')
     age = st.number_input('Age', min_value=18, max_value=100, value=30)
     tenure_months = st.number_input('Tenure (months)', min_value=1, max_value=72, value=12)
     monthly_charges = st.number_input('Monthly Charges', min_value=20.0, max_value=200.0, value=50.0)
@@ -64,13 +64,12 @@ elif options == "Customer Churn Prediction":
     number_of_logins = st.number_input('Number of Logins', min_value=0, max_value=1000, value=50)
     watch_hours = st.number_input('Watch Hours', min_value=0, max_value=100, value=10)
 
-    #gender = st.selectbox('Gender', ['Male', 'Female'])
     country = st.selectbox('Country', ['USA', 'Canada', 'Germany', 'UK'])
     contract_type = st.selectbox('Contract Type', ['Month-to-Month', 'One-Year', 'Two-Year'])
     payment_method = st.selectbox('Payment Method', ['Electronic Check', 'Mailed Check', 'Bank Transfer', 'Credit Card'])
     has_internet_service = st.selectbox('Has Internet Service', ['Yes', 'No'])
 
-    # Create a dictionary with the input values
+    # Create a dictionary with the input values (gender removed)
     input_data = {
         'age': age,
         'tenure_months': tenure_months,
@@ -78,7 +77,6 @@ elif options == "Customer Churn Prediction":
         'total_charges': total_charges,
         'number_of_logins': number_of_logins,
         'watch_hours': watch_hours,
-        #'gender': gender,
         'country': country,
         'contract_type': contract_type,
         'payment_method': payment_method,
