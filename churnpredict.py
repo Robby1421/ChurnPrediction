@@ -89,7 +89,7 @@ elif page == "Manual Input & Prediction":
     st.title("Manual Input & Prediction")
     st.write("Fill in the customer details below to predict churn for a single customer.")
 
-    # Example input form with dataset features
+    # Input form for manual data entry
     manual_input = {
         'Gender': st.selectbox("Gender", ['Male', 'Female']),
         'SeniorCitizen': st.selectbox("Senior Citizen", [0, 1]),
@@ -112,6 +112,7 @@ elif page == "Manual Input & Prediction":
         'TotalCharges': st.number_input("Total Charges ($)", min_value=0.0, value=500.0),
     }
 
+    # When the button is pressed to predict churn
     if st.button("Predict Churn for Manual Input"):
         try:
             input_data = pd.DataFrame([manual_input])
@@ -119,5 +120,7 @@ elif page == "Manual Input & Prediction":
             if prediction is not None:
                 st.write("Churn Prediction:", "Yes" if prediction[0] == 1 else "No")
                 st.write("Churn Probability:", f"{probability[0]:.2f}")
+            else:
+                st.write("Prediction could not be made.")
         except Exception as e:
             st.error(f"Error making prediction: {e}")
