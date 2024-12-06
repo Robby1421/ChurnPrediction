@@ -6,15 +6,15 @@ evaluation, and visualization for a customer churn prediction problem.
 """
 
 # Step 1: Data Loading and Setup
-from google.colab import drive
-import pandas as pd
-import numpy as np
+# from google.colab import drive
+# import pandas as pd
+# import numpy as np
 
-# Mount Google Drive
-drive.mount('/content/drive')
+# # Mount Google Drive
+# drive.mount('/content/drive')
 
 # Load the data from the CSV file
-file_path = '/content/drive/MyDrive/proactis/customer_churn.csv'
+file_path = 'https://github.com/Robby1421/ChurnPrediction/blob/main/customer_churn.csv'
 data = pd.read_csv(file_path)
 
 # Show the first few rows of the dataset
