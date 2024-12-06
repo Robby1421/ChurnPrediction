@@ -90,6 +90,11 @@ elif options == "Customer Churn Prediction":
     if uploaded_file:
         # Load the data
         df = pd.read_csv(uploaded_file)
+
+        # Drop 'customer_id' column if it exists
+        if 'customer_id' in df.columns:
+            df = df.drop('customer_id', axis=1)
+
         st.write("Data Preview:", df.head())
 
         # Preprocess the data
@@ -137,6 +142,11 @@ elif options == "Model Training":
     
     if uploaded_file:
         df = pd.read_csv(uploaded_file)
+
+        # Drop 'customer_id' column if it exists
+        if 'customer_id' in df.columns:
+            df = df.drop('customer_id', axis=1)
+
         st.write("Preview of the Data:", df.head())
 
         # Preprocess the data and train the model
