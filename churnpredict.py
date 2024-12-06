@@ -8,17 +8,16 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, roc_auc_score, confusion_matrix
-import requests
+import io
+from google.colab import files  # Only for Google Colab users
 
-# Function to load data from a raw GitHub URL
-def load_data_from_github(raw_url):
-    try:
-        data = pd.read_csv(raw_url, on_bad_lines='skip')  # Skip bad lines
-        print("Data loaded successfully!")
-        return data
-    except Exception as e:
-        print(f"Error reading the file: {e}")
-        return None
+# Function to load data from an uploaded file
+def load_data_from_uploaded_file():
+    uploaded = files.upload()  # This will prompt you to upload a file
+    file_name = next(iter(uploaded))  # Get the file name from the uploaded dictionary
+    data = pd.read_csv(io.BytesIO(uploaded[file_name]))  # Read the CSV into a DataFrame
+    print("Data loaded successfully!")
+    return data
 
 # Function for Data Exploration
 def explore_data(data):
@@ -120,14 +119,8 @@ def plot_feature_importance(X, rf_model):
 
 # Main function
 def main():
-    # GitHub Raw URL for the data
-    raw_url = 'https://raw.githubusercontent.com/username/repository/main/customer_churn.csv'  # Replace with actual URL
-
     # Step 1: Load Data
-    data = load_data_from_github(raw_url)
-
-    if data is None:
-        return  # Stop execution if data loading fails
+    data = load_data_from_uploaded_file()
 
     # Step 2: Explore Data
     explore_data(data)
