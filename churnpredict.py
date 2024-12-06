@@ -4,7 +4,7 @@ import streamlit as st
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.preprocessing import StandardScaler
 import seaborn as sns
 import matplotlib.pyplot as plt
 from streamlit_option_menu import option_menu
@@ -22,20 +22,14 @@ with st.sidebar:
     )
 
 # Function to preprocess the input data
-def preprocess_input(input_data, le, scaler):
+def preprocess_input(input_data, scaler):
     # Convert input data into a DataFrame
     data = pd.DataFrame([input_data])
 
-    # List of categorical columns (excludes 'gender' and 'country')
-    categorical_cols = ['contract_type', 'payment_method', 'has_internet_service']
-
-    # Encode categorical variables using LabelEncoder
-    for col in categorical_cols:
-        # Handle unseen labels by using `le.transform` and `fit_transform` on fit during training
-        data[col] = le.transform(data[col])
+    # List of numerical columns to scale
+    numerical_cols = ['age', 'tenure_months', 'monthly_charges', 'total_charges', 'number_of_logins', 'watch_hours']
 
     # Scale numerical features using StandardScaler
-    numerical_cols = ['age', 'tenure_months', 'monthly_charges', 'total_charges', 'number_of_logins', 'watch_hours']
     data[numerical_cols] = scaler.transform(data[numerical_cols])
 
     return data
@@ -56,7 +50,7 @@ elif options == "Customer Churn Prediction":
     contract type, payment method, and usage to make predictions.
     """)
 
-    # Customer input fields (removed 'gender' and 'country')
+    # Customer input fields (removed all categorical columns)
     age = st.number_input('Age', min_value=18, max_value=100, value=30)
     tenure_months = st.number_input('Tenure (months)', min_value=1, max_value=72, value=12)
     monthly_charges = st.number_input('Monthly Charges', min_value=20.0, max_value=200.0, value=50.0)
@@ -64,25 +58,18 @@ elif options == "Customer Churn Prediction":
     number_of_logins = st.number_input('Number of Logins', min_value=0, max_value=1000, value=50)
     watch_hours = st.number_input('Watch Hours', min_value=0, max_value=100, value=10)
 
-    contract_type = st.selectbox('Contract Type', ['Month-to-Month', 'One-Year', 'Two-Year'])
-    payment_method = st.selectbox('Payment Method', ['Electronic Check', 'Mailed Check', 'Bank Transfer', 'Credit Card'])
-    has_internet_service = st.selectbox('Has Internet Service', ['Yes', 'No'])
-
-    # Create a dictionary with the input values (gender and country removed)
+    # Create a dictionary with the input values (removed all categorical inputs)
     input_data = {
         'age': age,
         'tenure_months': tenure_months,
         'monthly_charges': monthly_charges,
         'total_charges': total_charges,
         'number_of_logins': number_of_logins,
-        'watch_hours': watch_hours,
-        'contract_type': contract_type,
-        'payment_method': payment_method,
-        'has_internet_service': has_internet_service
+        'watch_hours': watch_hours
     }
 
     # URL to the raw CSV file on GitHub (replace with your file's raw URL)
-    github_url = "https://github.com/Robby1421/ChurnPrediction/blob/main/customer_churn.csv"
+    github_url = "hhttps://github.com/Robby1421/ChurnPrediction/blob/main/customer_churn.csv"
 
     # Read the CSV file from GitHub
     try:
@@ -95,24 +82,17 @@ elif options == "Customer Churn Prediction":
     if 'customer_id' in df.columns:
         df = df.drop('customer_id', axis=1)
 
-    # Drop 'gender' and 'country' columns
-    if 'gender' in df.columns:
-        df = df.drop('gender', axis=1)
-    if 'country' in df.columns:
-        df = df.drop('country', axis=1)
+    # Drop all categorical columns (such as 'country', 'contract_type', 'payment_method', 'has_internet_service', 'gender')
+    categorical_cols = ['country', 'contract_type', 'payment_method', 'has_internet_service', 'gender']
+    df = df.drop(columns=categorical_cols, errors='ignore')
 
     st.write("Data Preview:", df.head())
 
-    # Preprocess the data
-    categorical_cols = ['contract_type', 'payment_method', 'has_internet_service']
-    le = LabelEncoder()
-
-    # Fit the LabelEncoder on categorical columns
-    for col in categorical_cols:
-        df[col] = le.fit_transform(df[col])
+    # Keep only numerical columns for model training
+    numerical_cols = ['age', 'tenure_months', 'monthly_charges', 'total_charges', 'number_of_logins', 'watch_hours']
+    df[numerical_cols] = df[numerical_cols].apply(pd.to_numeric, errors='coerce')
 
     # Scale numerical features
-    numerical_cols = ['age', 'tenure_months', 'monthly_charges', 'total_charges', 'number_of_logins', 'watch_hours']
     scaler = StandardScaler()
     df[numerical_cols] = scaler.fit_transform(df[numerical_cols])
 
@@ -127,7 +107,7 @@ elif options == "Customer Churn Prediction":
     model.fit(X_train, y_train)
 
     # Make predictions on the input data
-    processed_input = preprocess_input(input_data, le, scaler)
+    processed_input = preprocess_input(input_data, scaler)
     prediction = model.predict(processed_input)
     prediction_proba = model.predict_proba(processed_input)[:, 1]  # Get probability for class 1 (churn)
 
@@ -158,24 +138,17 @@ elif options == "Model Training":
     if 'customer_id' in df.columns:
         df = df.drop('customer_id', axis=1)
 
-    # Drop 'gender' and 'country' columns
-    if 'gender' in df.columns:
-        df = df.drop('gender', axis=1)
-    if 'country' in df.columns:
-        df = df.drop('country', axis=1)
+    # Drop all categorical columns (such as 'country', 'contract_type', 'payment_method', 'has_internet_service', 'gender')
+    categorical_cols = ['country', 'contract_type', 'payment_method', 'has_internet_service', 'gender']
+    df = df.drop(columns=categorical_cols, errors='ignore')
 
     st.write("Data Preview:", df.head())
 
-    # Preprocess the data and train the model
-    categorical_cols = ['contract_type', 'payment_method', 'has_internet_service']
-    le = LabelEncoder()
-
-    # Fit the LabelEncoder on categorical columns
-    for col in categorical_cols:
-        df[col] = le.fit_transform(df[col])
+    # Keep only numerical columns for model training
+    numerical_cols = ['age', 'tenure_months', 'monthly_charges', 'total_charges', 'number_of_logins', 'watch_hours']
+    df[numerical_cols] = df[numerical_cols].apply(pd.to_numeric, errors='coerce')
 
     # Scale numerical features
-    numerical_cols = ['age', 'tenure_months', 'monthly_charges', 'total_charges', 'number_of_logins', 'watch_hours']
     scaler = StandardScaler()
     df[numerical_cols] = scaler.fit_transform(df[numerical_cols])
 
