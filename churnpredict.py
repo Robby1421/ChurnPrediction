@@ -18,10 +18,14 @@ if uploaded_file is not None:
     st.write("### Dataset Preview")
     st.dataframe(data.head())
 
-    # Drop irrelevant columns
+    # Drop irrelevant columns (including 'customer_id' and 'gender')
     if 'customer_id' in data.columns:
         data = data.drop(['customer_id'], axis=1)
         st.write("Dropped 'customer_id' column from the dataset.")
+    
+    if 'gender' in data.columns:
+        data = data.drop(['gender'], axis=1)
+        st.write("Dropped 'gender' column from the dataset.")
 
     # Identify categorical columns and encode them
     categorical_columns = data.select_dtypes(include=['object']).columns
@@ -54,15 +58,16 @@ if uploaded_file is not None:
     # Prediction Section
     st.sidebar.header("Prediction Input")
     if st.sidebar.checkbox("Enable Manual Prediction"):
-        # Manual Input
+        # Manual Input (excluding 'gender' feature)
         st.sidebar.subheader("Enter Customer Features:")
         input_data = {}
         for col in X.columns:
-            dtype = X[col].dtype
-            if dtype == 'float64' or dtype == 'int64':
-                input_data[col] = st.sidebar.number_input(f"Enter {col}", value=float(X[col].mean()))
-            else:
-                input_data[col] = st.sidebar.text_input(f"Enter {col}", "")
+            if col != 'gender':  # We removed 'gender' from the input data
+                dtype = X[col].dtype
+                if dtype == 'float64' or dtype == 'int64':
+                    input_data[col] = st.sidebar.number_input(f"Enter {col}", value=float(X[col].mean()))
+                else:
+                    input_data[col] = st.sidebar.text_input(f"Enter {col}", "")
 
         # Predict
         if st.sidebar.button("Predict"):
