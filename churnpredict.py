@@ -84,10 +84,14 @@ elif options == "Customer Churn Prediction":
     }
 
     # URL to the raw CSV file on GitHub (replace with your file's raw URL)
-    github_url = "https://github.com/Robby1421/ChurnPrediction/blob/main/customer_churn.csv"
+    github_url = "https://raw.githubusercontent.com/yourusername/yourrepo/main/yourfile.csv"
 
     # Read the CSV file from GitHub
-    df = pd.read_csv(github_url)
+    try:
+        df = pd.read_csv(github_url, on_bad_lines='skip')  # Skip problematic lines
+    except Exception as e:
+        st.error(f"Error loading CSV: {e}")
+        st.stop()
 
     # Drop 'customer_id' column if it exists
     if 'customer_id' in df.columns:
@@ -144,7 +148,11 @@ elif options == "Model Training":
     github_url = "https://raw.githubusercontent.com/yourusername/yourrepo/main/yourfile.csv"
 
     # Read the CSV file from GitHub
-    df = pd.read_csv(github_url)
+    try:
+        df = pd.read_csv(github_url, on_bad_lines='skip')  # Skip problematic lines
+    except Exception as e:
+        st.error(f"Error loading CSV: {e}")
+        st.stop()
 
     # Drop 'customer_id' column if it exists
     if 'customer_id' in df.columns:
@@ -184,12 +192,4 @@ elif options == "Model Training":
     # Evaluate the model on the test set
     y_pred = model.predict(X_test)
 
-    # Display classification report
-    st.write("Classification Report:")
-    st.text(classification_report(y_test, y_pred))
-
-    # Display confusion matrix
-    cm = confusion_matrix(y_test, y_pred)
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
-    plt.title("Confusion Matrix")
-    st.pyplot()
+   
