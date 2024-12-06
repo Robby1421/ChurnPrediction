@@ -5,7 +5,7 @@ import requests
 from io import BytesIO
 
 # GitHub repo URL (replace with your actual GitHub repo URL)
-GITHUB_RAW_URL = "https://github.com/Robby1421/ChurnPrediction/main"
+GITHUB_RAW_URL = "https://github.com/Robby1421/ChurnPrediction/main/"
 
 # Load scaler and model from GitHub
 @st.cache_data
